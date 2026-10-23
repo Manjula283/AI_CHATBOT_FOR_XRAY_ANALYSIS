@@ -1,4 +1,4 @@
-# ThoraxAI Clinical Workspace — AI Chest X-ray Analysis Chatbot (PRD v2.0)
+# ThoraxAI Clinical Workspace — AI Chest X-ray Analysis Chatbot 
 
 An English-only AI-powered web application built with **Python, Flask, SQLAlchemy ORM (MySQL 8.0+ / SQLite), OpenCV/Pillow, and Vanilla ES6 JavaScript** that allows users to upload chest X-ray images, inspect radiographs side by side with AI-generated report drafts using an interactive zoom slider and hover-to-zoom loupe, ask follow-up questions through a report-grounded chatbot, and manage their persistent analysis history.
 
