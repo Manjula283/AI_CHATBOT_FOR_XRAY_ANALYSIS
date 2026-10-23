@@ -1,0 +1,17 @@
+# Python
+__pycache__/
+*.pyc
+.venv/
+
+# Local database (accounts + local analyses) - never commit
+instance/
+
+# Local user uploads (cloud copies live in the database)
+static/uploads/
+
+# Test artifacts
+.pytest_cache/
+tests/
+
+# Build artifacts
+*.zip
