@@ -1,0 +1,368 @@
+{# ============================================================ #}
+{#  PAGE 3 — ANALYSIS REPORT (viewer + structured report)      #}
+{#  Included by dashboard.html for the active study.           #}
+{# ============================================================ #}
+{% set meta = active_dict.metadata %}
+{% set findings = meta.get('findings', {}) %}
+{% set impressions = meta.get('impressions', []) %}
+{% set img_metrics = meta.get('image_metrics', {}) %}
+{% set zones = img_metrics.get('zones', {}) %}
+
+<div class="page">
+
+  <div class="breadcrumb">
+    <a href="{{ url_for('history_page') }}">Analysis History</a>
+    <span>&rsaquo;</span>
+    <span>{{ active_analysis.case_label }}</span>
+  </div>
+
+  <!-- Visible educational-use warning -->
+  <div class="edu-warning-strip" role="note">
+    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2">
+      <path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"></path>
+      <line x1="12" y1="9" x2="12" y2="13"></line>
+      <line x1="12" y1="17" x2="12.01" y2="17"></line>
+    </svg>
+    <span><strong>Educational use only.</strong> This report is an AI-assisted draft for learning and demonstration — always confirm findings with a qualified radiologist.</span>
+  </div>
+
+  <!-- STUDY HEADER -->
+  <div class="study-header-card">
+    <div class="study-title-block">
+      <h1>
+        <span>{{ active_analysis.case_label }}</span>
+        <span class="accession-badge">{{ active_dict.accession_number }}</span>
+        <span class="status-pill {{ meta.get('severity_level', 'completed') }}">{{ meta.get('severity_badge', 'Completed') }}</span>
+      </h1>
+      <div class="study-meta-row">
+        <span><strong>Analyzed:</strong> {{ active_dict.created_at }}</span>
+        <span><strong>Source file:</strong> {{ img_metrics.get('original_filename', 'chest_xray.jpg') }}</span>
+        <span><strong>Study ID:</strong> #{{ active_analysis.analysis_id }}</span>
+      </div>
+    </div>
+
+    <div class="study-actions">
+      <!-- Overflow menu: Delete Study (with confirmation modal) -->
+      <div class="study-more">
+        <button type="button" class="nav-btn nav-btn-icon js-study-more-toggle" aria-haspopup="true"
+                aria-expanded="false" title="More actions" aria-label="More actions">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4">
+            <circle cx="5" cy="12" r="1.4"></circle>
+            <circle cx="12" cy="12" r="1.4"></circle>
+            <circle cx="19" cy="12" r="1.4"></circle>
+          </svg>
+        </button>
+        <div class="study-more-list">
+          <button type="button"
+                  class="js-delete-analysis-btn study-more-delete"
+                  data-analysis-id="{{ active_analysis.analysis_id }}"
+                  data-case-label="{{ active_analysis.case_label }} ({{ active_dict.accession_number }})">
+            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2">
+              <polyline points="3 6 5 6 21 6"></polyline>
+              <path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"></path>
+              <path d="M10 11v6"></path>
+              <path d="M14 11v6"></path>
+            </svg>
+            Delete Study…
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- SIDE-BY-SIDE: viewer | report -->
+  <section class="side-by-side-grid" aria-label="Side-by-Side Image Viewer and Report Panel">
+
+    <!-- LEFT COLUMN — Interactive X-ray Viewer + Measurements -->
+    <div class="panel-left-column">
+
+      <!-- PANEL A — Interactive X-ray Viewer -->
+      <div class="panel-xray-viewer" id="panelAViewer">
+        <div class="pacs-header">
+          <div class="pacs-mode-group">
+            <button type="button" class="pacs-chip-btn active" id="btnModeOrig" title="Display the original uploaded chest X-ray">
+              Original X-ray
+            </button>
+            <button type="button" class="pacs-chip-btn" id="btnModeClahe" title="Display CLAHE contrast-enhanced preprocessed view">
+              CLAHE Enhanced
+            </button>
+          </div>
+        </div>
+
+        <div class="pacs-controls-bar">
+          <div class="zoom-slider-group">
+            <span class="zoom-slider-label">Zoom:</span>
+            <button type="button" class="zoom-step-btn" id="btnZoomOut" title="Decrease Zoom" aria-label="Zoom Out">&minus;</button>
+            <input type="range"
+                   id="xrayZoomSlider"
+                   class="xray-zoom-slider"
+                   min="100" max="350" step="5" value="100"
+                   aria-label="X-ray Magnification Zoom Slider" />
+            <button type="button" class="zoom-step-btn" id="btnZoomIn" title="Increase Zoom" aria-label="Zoom In">&plus;</button>
+            <span class="zoom-readout-badge" id="xrayZoomBadge">100%</span>
+            <button type="button" class="pacs-chip-btn" id="btnResetZoom" title="Return to default 100% zoom level">
+              Reset (100%)
+            </button>
+          </div>
+          <div class="pacs-mode-group">
+            <button type="button" class="pacs-chip-btn active" id="btnToggleLoupe" title="Toggle desktop hover-to-zoom magnifier lens">
+              Hover-to-Zoom: ON
+            </button>
+            <button type="button" class="pacs-chip-btn" id="btnLoupeMag" title="Change hover lens magnification">
+              Lens: 2.5&times;
+            </button>
+          </div>
+        </div>
+
+        <!-- Bounded X-ray Inspection Stage -->
+        <div class="pacs-viewport-stage" id="pacsViewportStage">
+          <div class="pacs-hud-overlay">
+            <div>STUDY: {{ active_dict.accession_number }}</div>
+            <div>FILE: {{ img_metrics.get('original_filename', 'cxr_study.png') }}</div>
+          </div>
+
+          <div class="xray-image-wrapper" id="xrayImageWrapper">
+            <img id="xrayMainImage"
+                 class="xray-main-image"
+                 src="{{ url_for('serve_analysis_image', analysis_id=active_analysis.analysis_id) }}"
+                 data-orig-src="{{ url_for('serve_analysis_image', analysis_id=active_analysis.analysis_id) }}"
+                 data-clahe-src="{{ url_for('serve_processed_image', analysis_id=active_analysis.analysis_id) }}"
+                 alt="Uploaded Chest Radiograph for {{ active_analysis.case_label }}" />
+          </div>
+
+          <!-- Desktop Hover-to-Zoom Optical Loupe -->
+          <div class="hover-zoom-loupe" id="hoverZoomLoupe" aria-hidden="true">
+            <span class="loupe-mag-tag" id="loupeMagTag">2.5&times; LOUPE</span>
+          </div>
+
+          <div class="pacs-hud-bottom">
+            Hover over radiograph for optical loupe · Use slider or scroll wheel to zoom (drag to pan)
+          </div>
+        </div>
+
+        <div class="pacs-footer-note">
+          <strong>Visual inspection notice:</strong> Zoom and contrast tools aid visual inspection only — they do not alter the stored image file.
+        </div>
+      </div>
+
+      <!-- Measurements card (balances the layout below the X-ray viewer) -->
+      <div class="viewer-measurements">
+        <h3 class="report-section-heading"><span>Measurements</span></h3>
+        <div class="metrics-grid">
+          <div class="metric-tile">
+            <div class="metric-tile-label">Est. Cardiac Ratio (CTR)</div>
+            <div class="metric-tile-value">{{ meta.get('displayed_ctr', 0.46) }} <span class="metric-ref">(Ref &lt;0.50)</span></div>
+          </div>
+          <div class="metric-tile">
+            <div class="metric-tile-label">Right Upper / Lower Zone</div>
+            <div class="metric-tile-value">{{ zones.get('right_upper_zone', 0.30) }} / {{ zones.get('right_lower_zone', 0.30) }}</div>
+          </div>
+          <div class="metric-tile">
+            <div class="metric-tile-label">Left Upper / Lower Zone</div>
+            <div class="metric-tile-value">{{ zones.get('left_upper_zone', 0.30) }} / {{ zones.get('left_lower_zone', 0.30) }}</div>
+          </div>
+          <div class="metric-tile">
+            <div class="metric-tile-label">Costophrenic (R / L)</div>
+            <div class="metric-tile-value">{{ zones.get('right_costophrenic', 0.35) }} / {{ zones.get('left_costophrenic', 0.35) }}</div>
+          </div>
+        </div>
+      </div>
+
+    </div>
+
+    <!-- PANEL B — Structured Report -->
+    <div class="panel-generated-report" id="panelBReport">
+      <div class="report-panel-header">
+        <div class="report-panel-title">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2">
+            <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path>
+            <polyline points="14 2 14 8 20 8"></polyline>
+            <line x1="16" y1="13" x2="8" y2="13"></line>
+            <line x1="16" y1="17" x2="8" y2="17"></line>
+          </svg>
+          <div>
+            <div class="rpt-name">Chest X-ray Report</div>
+            <div class="rpt-sub">{{ active_analysis.case_label }} · {{ active_dict.accession_number }}</div>
+          </div>
+        </div>
+        <div class="report-view-toggle">
+          <button type="button" class="pacs-chip-btn chip-on-light active" id="btnReportStructured">Structured View</button>
+          <button type="button" class="pacs-chip-btn chip-on-light" id="btnReportRaw">Raw Report Text</button>
+          <button type="button" class="pacs-chip-btn chip-on-light" id="btnCopyReport">Copy</button>
+          <a href="{{ url_for('view_analysis', analysis_id=active_analysis.analysis_id) }}?chat=1" class="nav-btn btn-chat-study">
+            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2">
+              <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"></path>
+            </svg>
+            Open Chatbot ({{ active_dict.message_count }})
+          </a>
+        </div>
+      </div>
+
+      <!-- Scrollable Report Body -->
+      <div class="report-scroll-body">
+
+        <!-- Structured Clinical View -->
+        <div id="reportStructuredView">
+          {% set off = 1 if meta.get('technique') else 0 %}
+
+          <!-- 01. Study Information -->
+          <div class="report-section-block">
+            <h3 class="report-section-heading"><span>01 · Study Information</span></h3>
+            <div class="info-grid">
+              <div><span>Study ID</span><strong>#{{ active_analysis.analysis_id }} · {{ active_dict.accession_number }}</strong></div>
+              <div><span>Report Date</span><strong>{{ active_dict.created_at }}</strong></div>
+              <div><span>Study Label</span><strong>{{ active_analysis.case_label }}</strong></div>
+              <div><span>Source File</span><strong>{{ img_metrics.get('original_filename', 'chest_xray.jpg') }}</strong></div>
+            </div>
+          </div>
+
+          <!-- 02. Technique (only when supported by the analysis engine) -->
+          {% if meta.get('technique') %}
+          <div class="report-section-block">
+            <h3 class="report-section-heading"><span>02 · Technique</span></h3>
+            <div class="info-single">{{ meta.get('technique') }}</div>
+          </div>
+          {% endif %}
+
+          <!-- Findings -->
+          <div class="report-section-block">
+            <h3 class="report-section-heading"><span>{{ '%02d' % (2 + off) }} · Findings</span></h3>
+            <div class="finding-row">
+              <span class="finding-label">Lungs &amp; Airways:</span>
+              <span>{{ findings.get('lungs_airways', 'Evaluated in raw report text.') }}</span>
+            </div>
+            <div class="finding-row">
+              <span class="finding-label">Pleural Spaces:</span>
+              <span>{{ findings.get('pleura', 'Bilateral costophrenic angles evaluated.') }}</span>
+            </div>
+            <div class="finding-row">
+              <span class="finding-label">Heart &amp; Mediastinum:</span>
+              <span>{{ findings.get('cardiomediastinal', 'Cardiomediastinal silhouette evaluated.') }}</span>
+            </div>
+            <div class="finding-row">
+              <span class="finding-label">Bones &amp; Soft Tissues:</span>
+              <span>{{ findings.get('osseous_soft_tissue', 'Visualized bony thorax appears intact.') }}</span>
+            </div>
+          </div>
+
+          <!-- Impression / Summary -->
+          <div class="report-section-block">
+            <h3 class="report-section-heading"><span>{{ '%02d' % (3 + off) }} · Impression &amp; Summary</span></h3>
+            <div class="impression-box">
+              <ol>
+                {% for imp in impressions %}
+                  <li>{{ imp }}</li>
+                {% else %}
+                  <li>{{ active_analysis.case_label }} — see detailed findings above.</li>
+                {% endfor %}
+              </ol>
+            </div>
+          </div>
+
+          <!-- Understand This Report (collapsible: plain-English + glossary) -->
+          {% if meta.get('plain_english') or meta.get('glossary') %}
+          <details class="report-section-block report-collapse">
+            <summary>{{ '%02d' % (4 + off) }} · Understand This Report</summary>
+            <div class="report-collapse-body">
+              {% if meta.get('plain_english') %}
+              <div class="plain-english-card">
+                <strong>Plain-English summary</strong>
+                <p style="margin-top:6px;">{{ meta.get('plain_english') }}</p>
+              </div>
+              {% endif %}
+              {% if meta.get('glossary') %}
+              <div class="glossary-list" style="margin-top:14px;">
+                <div class="metric-tile-label" style="margin-bottom:8px;">Key terms in this report</div>
+                {% for g in meta.get('glossary', []) %}
+                  <div class="glossary-item">
+                    <strong>{{ g.term }}:</strong>
+                    <span>{{ g.definition }}</span>
+                  </div>
+                {% endfor %}
+              </div>
+              {% endif %}
+            </div>
+          </details>
+          {% endif %}
+
+        </div>
+
+        <!-- Raw Report Text View -->
+        <div id="reportRawView" style="display:none;">
+          <pre class="raw-report-pre" id="rawReportPreText">{{ active_analysis.generated_report }}</pre>
+        </div>
+
+      </div>
+
+      <!-- Download Report as PDF (end of the report panel) -->
+      <div class="report-download-bar">
+        <button type="button" class="nav-btn nav-btn-primary" id="btnDownloadPdf"
+                title="Opens the print dialog — choose 'Save as PDF' to download the report as a PDF file">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2">
+            <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
+            <polyline points="7 10 12 15 17 10"></polyline>
+            <line x1="12" y1="15" x2="12" y2="3"></line>
+          </svg>
+          Download Report as PDF
+        </button>
+      </div>
+    </div>
+
+  </section>
+
+  <!-- Print-only document header (used by "Download Report as PDF") -->
+  <div class="print-only print-doc-header">
+    <div class="doc-title-row">
+      <div>
+        <div class="doc-app">ThoraxAI — AI Chatbot for Chest X-ray Analysis</div>
+        <div class="doc-kind">Chest X-ray Analysis Report · AI-Assisted Draft (Educational Use)</div>
+      </div>
+      <div class="doc-sev sev-{{ meta.get('severity_level', 'completed') }}">{{ meta.get('severity_badge', 'Completed') }}</div>
+    </div>
+    <div class="doc-meta-grid">
+      <div><span>Study ID</span><strong>#{{ active_analysis.analysis_id }} · {{ active_dict.accession_number }}</strong></div>
+      <div><span>Study Label</span><strong>{{ active_analysis.case_label }}</strong></div>
+      <div><span>Report Date</span><strong>{{ active_dict.created_at }}</strong></div>
+      <div><span>Model</span><strong>{{ active_analysis.model_version }}</strong></div>
+      <div><span>Resolution</span><strong>{{ img_metrics.get('dimensions', '800 × 800 px') }}</strong></div>
+      <div><span>Inference Time</span><strong>{{ meta.get('inference_latency_ms', 145.0) }} ms</strong></div>
+    </div>
+    <div class="doc-image">
+      <img src="{{ url_for('serve_analysis_image', analysis_id=active_analysis.analysis_id) }}"
+           alt="Original uploaded chest X-ray for {{ active_analysis.case_label }}" />
+    </div>
+  </div>
+
+  <!-- Print-only footer disclaimer -->
+  <div class="print-only doc-footer">
+    Generated by ThoraxAI ({{ active_analysis.model_version }}) on {{ active_dict.created_at }} ·
+    Study ID #{{ active_analysis.analysis_id }} ({{ active_dict.accession_number }}).
+    This report is an AI-assisted, educational draft and is not a confirmed clinical diagnosis.
+    Always confirm findings with a qualified radiologist.
+  </div>
+
+  <script>
+  window.addEventListener("DOMContentLoaded", function () {
+    // Download Report as PDF → browser print dialog (Save as PDF)
+    var pdfBtn = document.getElementById("btnDownloadPdf");
+    if (pdfBtn) {
+      pdfBtn.addEventListener("click", function () { window.print(); });
+    }
+    // "More actions" overflow menu
+    var more = document.querySelector(".study-more");
+    if (more) {
+      var toggle = more.querySelector(".js-study-more-toggle");
+      toggle.addEventListener("click", function (e) {
+        e.stopPropagation();
+        var open = more.classList.toggle("open");
+        toggle.setAttribute("aria-expanded", open ? "true" : "false");
+      });
+      document.addEventListener("click", function () {
+        more.classList.remove("open");
+        toggle.setAttribute("aria-expanded", "false");
+      });
+    }
+  });
+  </script>
+
+</div>
