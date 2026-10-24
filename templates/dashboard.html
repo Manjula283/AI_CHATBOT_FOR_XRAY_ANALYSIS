@@ -1,0 +1,18 @@
+{% extends "base.html" %}
+{% block title %}ThoraxAI — AI Chatbot for Chest X-ray Analysis{% endblock %}
+
+{# ============================================================ #}
+{#  Page dispatcher — each page lives in its own template:     #}
+{#    · upload.html  → New Analysis / Upload page (?new=1)      #}
+{#    · chat.html    → Report Chatbot page (?chat=1 on a study) #}
+{#    · report.html  → Analysis Report page (default study view)#}
+{# ============================================================ #}
+{% block content %}
+  {% if request.args.get('chat') == '1' and active_analysis and not new_mode %}
+    {% include "chat.html" %}
+  {% elif new_mode %}
+    {% include "upload.html" %}
+  {% else %}
+    {% include "report.html" %}
+  {% endif %}
+{% endblock %}

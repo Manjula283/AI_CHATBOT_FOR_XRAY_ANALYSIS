@@ -1,0 +1,114 @@
+{# ============================================================ #}
+{#  PAGE 4 — REPORT CHATBOT (dedicated conversation page)      #}
+{#  Included by dashboard.html when ?chat=1 for a study.       #}
+{#  Linked to the selected study — no re-upload required.      #}
+{# ============================================================ #}
+<div class="page">
+
+  <div class="breadcrumb">
+    <a href="{{ url_for('history_page') }}">Analysis History</a>
+    <span>&rsaquo;</span>
+    <a href="{{ url_for('view_analysis', analysis_id=active_analysis.analysis_id) }}">{{ active_analysis.case_label }}</a>
+    <span>&rsaquo;</span>
+    <span>Chat</span>
+  </div>
+
+  <div class="chat-page-head">
+    <div>
+      <a href="{{ url_for('view_analysis', analysis_id=active_analysis.analysis_id) }}" class="nav-btn nav-btn-ghost" style="margin-bottom:10px;">
+        &larr; Back to Report
+      </a>
+      <h1>Report Chatbot</h1>
+      <p class="page-sub">
+        Dedicated conversation for study <strong>{{ active_dict.accession_number }}</strong>
+        ({{ active_analysis.case_label }}) — no need to upload the X-ray again.
+      </p>
+    </div>
+    <a href="{{ url_for('view_analysis', analysis_id=active_analysis.analysis_id) }}" class="nav-btn">
+      Open Full Report &rarr;
+    </a>
+  </div>
+
+  <section class="chat-card" aria-label="Report-Grounded Chatbot">
+    <div class="chatbot-header">
+      <div class="chatbot-title-group">
+        <div class="chatbot-icon-badge" aria-hidden="true">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2">
+            <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"></path>
+          </svg>
+        </div>
+        <div>
+          <div class="chatbot-title-text">Report-Grounded Chat Assistant</div>
+          <div class="chatbot-sub">
+            Answers grounded strictly in <strong>{{ active_dict.accession_number }}</strong> ({{ active_analysis.case_label }})
+          </div>
+        </div>
+      </div>
+      <a href="{{ url_for('view_analysis', analysis_id=active_analysis.analysis_id) }}" class="nav-btn nav-btn-ghost">
+        View Report
+      </a>
+    </div>
+
+    <!-- Example Questions Quick-Prompt Bar -->
+    <div class="quick-prompts-bar">
+      <span>Suggested Questions:</span>
+      <button type="button" class="quick-prompt-chip js-quick-prompt" data-prompt="Explain this report in simple English.">
+        "Explain this report in simple English."
+      </button>
+      <button type="button" class="quick-prompt-chip js-quick-prompt" data-prompt="What does opacity mean?">
+        "What does opacity mean?"
+      </button>
+      <button type="button" class="quick-prompt-chip js-quick-prompt" data-prompt="Summarize the report.">
+        "Summarize the report."
+      </button>
+      <button type="button" class="quick-prompt-chip js-quick-prompt" data-prompt="What limitations should I understand?">
+        "What limitations should I understand?"
+      </button>
+      <button type="button" class="quick-prompt-chip js-quick-prompt" data-prompt="What does the report say about the heart and pleura?">
+        "Heart &amp; pleura findings?"
+      </button>
+      <button type="button" class="quick-prompt-chip js-quick-prompt" data-prompt="What questions should I ask my doctor about this X-ray?">
+        "Questions for my doctor?"
+      </button>
+    </div>
+
+    <!-- Conversation Messages Stream -->
+    <div class="chat-messages-stream" id="chatMessagesStream">
+      {% for msg in active_dict.messages %}
+        <div class="chat-bubble-row {{ msg.role }}">
+          <div class="chat-avatar">{{ 'AI' if msg.role == 'assistant' else 'YOU' }}</div>
+          <div class="chat-bubble">
+            {% if msg.role == 'assistant' %}
+              <div class="js-markdown-content" data-raw="{{ msg.message_text }}">{{ msg.message_text }}</div>
+            {% else %}
+              <div>{{ msg.message_text }}</div>
+            {% endif %}
+            <span class="chat-timestamp">{{ msg.created_at }}</span>
+          </div>
+        </div>
+      {% endfor %}
+    </div>
+
+    <!-- Chat Input Form -->
+    <form class="chat-input-bar" id="chatbotForm" data-analysis-id="{{ active_analysis.analysis_id }}">
+      <input type="text"
+             id="chatbotInput"
+             class="chat-text-input"
+             placeholder="Ask a follow-up question about this chest X-ray report (e.g., 'Explain this report in simple English')..."
+             autocomplete="off"
+             required />
+      <button type="submit" class="nav-btn nav-btn-primary chat-send-btn" id="chatbotSendBtn">
+        <span>Ask Assistant</span>
+        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2">
+          <line x1="22" y1="2" x2="11" y2="13"></line>
+          <polygon points="22 2 15 22 11 13 2 9 22 2"></polygon>
+        </svg>
+      </button>
+    </form>
+
+    <div class="chat-footnote">
+      Conversations are saved to your account · Educational use only — not a substitute for professional medical advice.
+    </div>
+  </section>
+
+</div>

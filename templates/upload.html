@@ -1,0 +1,163 @@
+{# ============================================================ #}
+{#  PAGE 2 — UPLOAD CHEST X-RAY                                #}
+{#  Included by dashboard.html when new_mode is true.          #}
+{# ============================================================ #}
+<div class="page">
+
+  <div class="page-header">
+    <div>
+      <h1>Upload Chest X-ray</h1>
+      <p class="page-sub">
+        Upload a frontal chest radiograph (PA / AP) in <strong>JPG, JPEG, or PNG</strong> — up to 16 MB.
+        Includes automated header verification, EXIF privacy sanitization, and CLAHE contrast preprocessing.
+      </p>
+    </div>
+    {% if active_analysis %}
+      <a href="{{ url_for('dashboard', analysis_id=active_analysis.analysis_id) }}" class="nav-btn nav-btn-ghost">
+        &larr; Back to current study
+      </a>
+    {% endif %}
+  </div>
+
+  {% if not analyses %}
+    <!-- First-run welcome -->
+    <div class="welcome-hero">
+      <h2>Welcome, {{ current_user.name }}! Let's run your first analysis.</h2>
+      <p>Upload any chest X-ray — or pick a built-in sample below — and the system will generate a
+        structured radiology report draft you can explore, zoom into, and ask questions about.</p>
+      <div class="steps-row">
+        <div class="step-card">
+          <div class="step-num">STEP 1</div>
+          <div class="step-title">Upload or pick a sample</div>
+          <p class="step-desc">Drop a JPG / PNG chest radiograph, or run a built-in clinical sample instantly.</p>
+        </div>
+        <div class="step-card">
+          <div class="step-num">STEP 2</div>
+          <div class="step-title">Inspect the report</div>
+          <p class="step-desc">Review structured findings, measurements, and impression with the X-ray beside it.</p>
+        </div>
+        <div class="step-card">
+          <div class="step-num">STEP 3</div>
+          <div class="step-title">Ask questions</div>
+          <p class="step-desc">Chat with the report-grounded assistant in plain English — saved to your account.</p>
+        </div>
+      </div>
+    </div>
+  {% endif %}
+
+  <!-- Upload and sample actions sit side-by-side on desktop and stack on small screens -->
+  <div class="upload-main-grid">
+
+  <!-- Upload card -->
+  <section class="upload-stage-card" id="uploadStageCard">
+    <div class="upload-card-head">
+      <h2>Upload your chest X-ray</h2>
+      <span class="upload-card-tag">JPG · JPEG · PNG — max 16 MB</span>
+    </div>
+
+    <div class="upload-instructions">
+      <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2">
+        <circle cx="12" cy="12" r="10"></circle>
+        <line x1="12" y1="16" x2="12" y2="12"></line>
+        <line x1="12" y1="8" x2="12.01" y2="8"></line>
+      </svg>
+      <span>
+        <strong>Instructions:</strong> Please upload a <strong>frontal chest X-ray (PA / AP view)</strong> for
+        validation. File must be JPG, JPEG or PNG and no larger than 16 MB.
+      </span>
+    </div>
+
+    <!-- Error Alert Box for Invalid Upload / Inference Failures -->
+    <div id="uploadErrorBox" class="alert-box alert-danger" style="display:none;" role="alert"></div>
+
+    <!-- Drag & Drop Upload Zone -->
+    <div class="upload-dropzone" id="xrayDropzone">
+      <input type="file" id="xrayFileInput" accept=".jpg,.jpeg,.png,image/jpeg,image/png" style="display:none;" />
+      <div class="dropzone-icon">
+        <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2">
+          <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
+          <polyline points="17 8 12 3 7 8"></polyline>
+          <line x1="12" y1="3" x2="12" y2="15"></line>
+        </svg>
+      </div>
+      <div class="dropzone-title">Click to Browse or Drag &amp; Drop</div>
+      <div class="dropzone-sub">
+        Frontal Chest Radiographs (PA / AP) in <strong>.JPG, .JPEG, or .PNG</strong> · Max file size 16.0 MB
+      </div>
+    </div>
+
+    <!-- Uploaded Image Preview + Generate Report (JS toggles display: flex) -->
+    <div class="upload-preview-box" id="uploadPreviewBox">
+      <img src="" alt="Uploaded X-ray Preview" class="upload-preview-img" id="uploadPreviewImg" />
+      <div class="preview-info">
+        <div class="preview-label">Selected Image Preview</div>
+        <div id="uploadPreviewFilename" class="preview-filename"></div>
+        <div id="uploadPreviewMeta" class="preview-meta"></div>
+      </div>
+      <div class="preview-actions">
+        <button type="button" class="nav-btn" id="btnClearSelection">Clear Selection</button>
+        <button type="button" class="nav-btn nav-btn-primary" id="btnRunAnalysis">
+          Generate Report &rarr;
+        </button>
+      </div>
+    </div>
+
+    <!-- Inference Progress Indicator -->
+    <div id="inferenceProgressArea" class="inference-progress" style="display:none;">
+      <div class="inference-progress-inner">
+        <div class="spinner"></div>
+        <div>
+          <div class="inference-step" id="inferenceProgressStep">
+            Running Preprocessing &amp; Vision-Language Model Inference...
+          </div>
+          <div class="inference-sub">Model weights cached in worker memory ({{ vlm_model_name }})</div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- Built-in clinical samples (compact) -->
+  <aside class="samples-card">
+    <h3>Or start with a built-in sample</h3>
+    <p class="samples-sub">Click any sample chest X-ray to run the complete analysis pipeline:</p>
+    <div class="sample-cards-grid">
+      {% for sample in sample_catalog %}
+        {% set sample_title = sample.title %}
+        {% set sample_subtitle = sample.subtitle %}
+        {% if sample.id == 'normal_pa' %}
+          {% set sample_title = 'Normal PA Chest' %}
+          {% set sample_subtitle = 'Frontal PA radiograph; described as normal in source.' %}
+        {% elif sample.id == 'rll_pneumonia' %}
+          {% set sample_title = 'Right Lower Zone Consolidation' %}
+          {% set sample_subtitle = 'PA image · consolidation in the right mid and both lower lobes.' %}
+        {% elif sample.id == 'cardiomegaly_effusion' %}
+          {% set sample_title = 'Cardiomegaly & Pleural Effusion' %}
+          {% set sample_subtitle = 'Enlarged heart · minor pleural effusion noted in source.' %}
+        {% elif sample.id == 'lul_infiltrate' %}
+          {% set sample_title = 'Left Upper Lobe Cavitation' %}
+          {% set sample_subtitle = 'PA radiograph; source annotation marks the cavity.' %}
+        {% endif %}
+        <button type="button" class="sample-xray-card js-sample-xray-btn" data-sample-id="{{ sample.id }}">
+          <img src="{{ url_for('static', filename='samples/' + sample.filename) }}" alt="{{ sample_title }}" />
+          <div class="sample-text">
+            <span class="sample-tag">{{ sample.tag }}</span>
+            <div class="sample-title">{{ sample_title }}</div>
+            <div class="sample-subtitle">{{ sample_subtitle }}</div>
+          </div>
+        </button>
+      {% endfor %}
+    </div>
+    <details class="sample-credits">
+      <summary>Sample image sources &amp; licenses</summary>
+      <ul>
+        <li><a href="https://commons.wikimedia.org/wiki/File:Normal_posteroanterior_(PA)_chest_radiograph_(X-ray).jpg" target="_blank" rel="noopener noreferrer">Normal PA chest</a> — Mikael Häggström, CC0.</li>
+        <li><a href="https://commons.wikimedia.org/wiki/File:X-ray_lung_consolidation.jpg" target="_blank" rel="noopener noreferrer">Right lower-zone consolidation</a> — Malvinder S. Parmar, CC BY 2.0.</li>
+        <li><a href="https://commons.wikimedia.org/wiki/File:Chest_radiograph_of_a_lung_with_Kerley_B_lines.jpg" target="_blank" rel="noopener noreferrer">Cardiomegaly and minor pleural effusion</a> — Mikael Häggström, CC0.</li>
+        <li><a href="https://commons.wikimedia.org/wiki/File:Chest_X-ray_PA_erect_showing_left_upper_lobe_cavitation.png" target="_blank" rel="noopener noreferrer">Left upper lobe cavitation</a> — Cerevisae, CC BY-SA 4.0.</li>
+      </ul>
+      <p>Sample files are resized and converted to grayscale for display and preprocessing; no clinical annotations were removed.</p>
+    </details>
+  </aside>
+
+  </div>
+</div>
