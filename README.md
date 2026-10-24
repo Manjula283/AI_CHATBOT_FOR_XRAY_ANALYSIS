@@ -1,94 +1,262 @@
-# ThoraxAI Clinical Workspace — AI Chest X-ray Analysis Chatbot 
+# ThoraxAI — Chest X-ray Analysis Chatbot
 
-An English-only AI-powered web application built with **Python, Flask, SQLAlchemy ORM (MySQL 8.0+ / SQLite), OpenCV/Pillow, and Vanilla ES6 JavaScript** that allows users to upload chest X-ray images, inspect radiographs side by side with AI-generated report drafts using an interactive zoom slider and hover-to-zoom loupe, ask follow-up questions through a report-grounded chatbot, and manage their persistent analysis history.
+ThoraxAI is a web-based chest X-ray analysis application that combines image processing, quantitative analysis, structured report generation, and conversational interaction in a unified workspace.
 
----
+The objective of this project is to demonstrate an integrated workflow for uploading chest X-ray images, processing image data, evaluating quantitative indicators, generating educational analysis reports, and allowing users to explore the results through an interactive chatbot.
 
-## Key Features (PRD Version 2.0 Functional Requirements)
+## Features
 
-- **FR-01 & FR-02 · Secure Registration, Login & Session Protection:**
-  - User account creation with email uniqueness validation and Werkzeug password hashing (`scrypt` / `pbkdf2`).
-  - Protected routes and strict ownership verification (`user_id`) on all image, report, chat, and deletion operations.
-- **FR-03 · Chest X-ray Upload, Validation & Preprocessing:**
-  - Supports `.JPG`, `.JPEG`, and `.PNG` chest radiographs up to 16 MB.
-  - Verifies image header integrity with Pillow, strips EXIF metadata for privacy, and runs a 512×512 canonical resample + **CLAHE (Contrast Limited Adaptive Histogram Equalization)** pipeline.
-  - Includes 4 built-in clinical sample chest radiographs for one-click evaluator testing.
-- **FR-04 · Structured AI Report Generation:**
-  - Singleton `ThoraxVLMInferenceEngine` loaded once per worker process.
-  - Produces structured report drafts with **Findings** (Lungs & Airways, Pleura, Heart & Mediastinum, Bones & Soft Tissues), **Impression / Summary**, **Plain-English Explanation**, **Quantitative Zone Densities**, **Radiological Glossary**, and **Relevant Uncertainty & Limitations**.
-  - Explicitly labels all outputs as **AI-Generated & Unverified**.
-- **FR-05 · Side-by-Side Analysis Interface:**
-  - **Panel A (Left):** Original uploaded chest X-ray preserving aspect ratio inside a dark PACS inspection viewport.
-  - **Panel B (Right):** Independently scrollable generated report panel with Structured Clinical View and Raw Report Text tabs.
-  - Responsive layout stacks panels cleanly on mobile screens.
-- **FR-06 · Interactive X-ray Viewer:**
-  - **Zoom Slider (`100%` to `350%`)** with `-`/`+` buttons, live magnification percentage badge, drag-to-pan (mouse and touch), and **Reset (100%)** button.
-  - **Desktop Hover-to-Zoom Loupe:** Toggleable optical magnifier lens (`2.0×`, `2.5×`, `3.5×`) that follows the cursor within the viewer boundaries without obscuring the report panel.
-  - Switch between **Original Uploaded X-ray**, **CLAHE Contrast-Enhanced View**, and **Invert Grayscale**.
-- **FR-07 & FR-08 · English-Only Contextual Chatbot:**
-  - Answers follow-up questions grounded strictly in the active chest X-ray report draft (e.g., *"Explain this report in simple English."*, *"What does opacity mean?"*, *"Summarize the report."*, *"What limitations should I understand?"*).
-- **FR-09 to FR-12 · Persistent Analysis History Management:**
-  - Saves completed analyses and conversations under the authenticated user's account (`Users`, `Analyses`, `ChatMessages`).
-  - Reopens saved studies immediately **without triggering a new model inference request**.
-  - Ownership-verified deletion with a confirmation dialog that removes the database record, chat messages, and stored image files.
+### 1. Chest X-ray Image Upload
+- Upload chest X-ray images in JPG, JPEG, and PNG formats.
+- Validate uploaded files and their sizes.
+- Preprocess images before analysis.
+- Remove EXIF metadata to help protect image privacy.
+- Apply image normalization and contrast enhancement.
 
----
+### 2. Image Preprocessing
+- Convert images to grayscale for analysis.
+- Normalize image intensity values.
+- Apply CLAHE (Contrast Limited Adaptive Histogram Equalization) to enhance local contrast.
+- Prepare images for quantitative measurements and visualization.
 
-## Project Structure
+### 3. Quantitative Image Analysis
+The application evaluates image-based indicators, including:
+
+- **Cardiothoracic Ratio (CTR):** Estimates the ratio between cardiac width and thoracic width.
+- **Lung-Zone Density:** Examines density variations across defined lung regions.
+- **Lung Symmetry Index:** Compares measurements between the left and right lung regions.
+- **Costophrenic-Angle Density:** Evaluates image density near the costophrenic regions.
+
+These indicators are evaluated by the application's rule-based inference engine to generate an educational analysis.
+
+### 4. Interactive X-ray Viewer
+- Zoom in and out of uploaded images.
+- Pan across images for closer inspection.
+- Use hover-based zoom for focused viewing.
+- Apply contrast enhancement.
+- Invert image intensity for alternative visualization.
+
+### 5. Automated Report Generation
+The application generates structured reports containing:
+
+- Analysis summary and impression.
+- Region-wise image observations.
+- Quantitative measurements.
+- Plain-English explanations.
+- Consolidated analysis results.
+
+### 6. Chatbot Interface
+The integrated chatbot allows users to ask questions about the generated analysis and receive contextual explanations based on the application's analysis results.
+
+### 7. User Authentication
+- User registration and login.
+- User-specific analysis access.
+- Database-backed user management.
+
+### 8. Analysis History
+- Save analysis records in the database.
+- Retrieve previous analyses.
+- Review previously generated reports.
+- Associate analysis records with individual users.
+
+## How It Works
+
+1. **Upload:** The user uploads a chest X-ray image.
+2. **Validation:** The application validates the file format and size.
+3. **Preprocessing:** The image is normalized, enhanced, and prepared for analysis.
+4. **Quantitative Analysis:** The application calculates image-based indicators such as CTR, lung-zone density, and symmetry measurements.
+5. **Rule-Based Inference:** The inference engine evaluates computed measurements and image characteristics using predefined rules.
+6. **Report Generation:** The application generates a structured report containing observations and explanations.
+7. **Chatbot Interaction:** The user can ask questions about the generated report.
+8. **History Management:** The analysis and report can be saved and retrieved for later review.
+
+## Technology Stack
+
+| Component | Technologies |
+|---|---|
+| Programming Language | Python |
+| Backend Framework | Flask |
+| Frontend | HTML5, CSS3, JavaScript (ES6) |
+| Image Processing | OpenCV, Pillow, NumPy |
+| Database ORM | Flask-SQLAlchemy, SQLAlchemy |
+| Database | MySQL 8.0+ / SQLite fallback |
+| Database Connectivity | PyMySQL |
+| Testing | pytest |
+| Deployment | Render |
+| Cloud Database | PostgreSQL-compatible configuration |
+
+## Project Architecture
+
+The application follows a modular architecture that separates the web application, image processing, inference logic, report generation, chatbot functionality, and database operations.
 
 ```text
-├── app.py                        # Main Flask application, routes, API endpoints & error handlers
-├── config.py                     # Environment configuration (MySQL URI builder & SQLite fallback)
-├── models.py                     # SQLAlchemy ORM models: Users, Analyses, ChatMessages
-├── schema.sql                    # MySQL 8.0+ DDL schema script
-├── requirements.txt              # Python dependencies
+ThoraxAI/
+│
+├── app.py
+├── config.py
+├── models.py
+├── schema.sql
+├── requirements.txt
+├── render.yaml
+│
 ├── services/
-│   ├── image_processor.py        # File validation, EXIF sanitization, CLAHE & zone density metrics
-│   ├── ai_report_generator.py    # Singleton ThoraxVLM report generation service
-│   ├── chatbot_engine.py         # Report-grounded English-only conversational assistant
-│   ├── sample_generator.py       # Synthetic clinical chest radiograph phantom generator
-│   └── seed_demo.py              # Demo account & historical study seeder
-├── static/
-│   ├── css/clinical.css          # Clinical Diagnostic Precision stylesheet
-│   ├── js/workspace.js           # Zoom slider, hover-to-zoom loupe, upload & chatbot controller
-│   ├── samples/                  # Built-in sample chest radiographs
-│   └── uploads/                  # Controlled user upload storage directory
+│   ├── image_processor.py
+│   ├── ai_report_generator.py
+│   ├── chatbot_engine.py
+│   ├── sample_generator.py
+│   └── seed_demo.py
+│
 ├── templates/
-│   ├── base.html                 # Shared header, medical safety banner & delete confirmation modal
-│   ├── auth.html                 # Split-screen Registration, Login & One-Click Demo Access
-│   ├── dashboard.html            # Side-by-Side Viewer (Panel A), Report (Panel B) & Chatbot
-│   └── history.html              # Dedicated Analysis History & Database Schema Dashboard
-└── tests/
-    └── test_app.py               # Automated pytest suite covering PRD Acceptance Criteria 1–17
+│   ├── base.html
+│   ├── auth.html
+│   ├── dashboard.html
+│   ├── upload.html
+│   ├── report.html
+│   └── history.html
+│
+├── static/
+│   ├── css/
+│   │   └── clinical.css
+│   ├── js/
+│   │   └── workspace.js
+│   ├── samples/
+│   └── uploads/
+│
+├── tests/
+│   ├── test_app.py
+│   └── test_database_migrations.py
+│
+├── DEPLOY.md
+├── DEPLOY_GUIDE.md
+└── README.md
 ```
 
----
+*Note: Verify the file names and directory structure against the actual repository.*
 
-## Setup & Running Instructions
+## Database Design
 
-### 1. Install Dependencies
+The application uses a relational database to manage user accounts, analysis records, and chatbot conversations.
+
+### USERS
+Stores user account information.
+
+### ANALYSES
+Stores analysis metadata, quantitative measurements, and generated reports. Each analysis is associated with a user.
+
+### CHAT_MESSAGES
+Stores chatbot messages associated with an analysis.
+
+**Database relationships:**
+- One user can have multiple analysis records.
+- One analysis can have multiple chatbot messages.
+- Each analysis record stores its generated report.
+
+## Installation and Setup
+
+### Prerequisites
+- Python 3.10 or later
+- pip
+- Git
+- MySQL 8.0+ or SQLite for local development
+
+### 1. Clone the Repository
+
+```bash
+git clone https://github.com/Manjula283/AI_CHATBOT_FOR_XRAY_ANALYSIS.git
+cd AI_CHATBOT_FOR_XRAY_ANALYSIS
+```
+
+### 2. Create a Virtual Environment
+
+```bash
+python -m venv venv
+```
+
+Activate the environment on Windows:
+
+```bash
+venv\Scripts\activate
+```
+
+On macOS or Linux:
+
+```bash
+source venv/bin/activate
+```
+
+### 3. Install Dependencies
+
 ```bash
 pip install -r requirements.txt
 ```
 
-### 2. Configure MySQL Database (Optional — Automatic Local Fallback Included)
-To connect to a MySQL 8.0+ server, initialize the schema using `schema.sql` and export your connection variables:
-```bash
-mysql -u root -p < schema.sql
-export MYSQL_HOST="127.0.0.1"
-export MYSQL_PORT="3306"
-export MYSQL_USER="root"
-export MYSQL_PASSWORD="your_password"
-export MYSQL_DB="chest_xray_ai_db"
-```
-*(If `MYSQL_HOST` or `DATABASE_URL` is not set, the application automatically persists to `instance/chest_xray_ai_db.sqlite` via SQLAlchemy ORM using the exact same `Users`, `Analyses`, and `ChatMessages` schema.)*
+### 4. Configure Environment Variables
 
-### 3. Start the Application
-```bash
-python3 app.py
+Configure the database connection and application settings using the environment variables supported by the project.
+
+Example:
+
+```env
+SECRET_KEY=your-secret-key
+DATABASE_URL=your-database-connection-string
 ```
 
-### 4. Run Automated Tests
+Use a secure secret key and keep credentials in environment variables rather than committing them to GitHub.
+
+### 5. Run the Application
+
 ```bash
-pytest -v tests/test_app.py
+python app.py
 ```
+
+Open the local address displayed by Flask in your browser, commonly `http://127.0.0.1:5000`.
+
+*Database initialization and environment variable names should follow the actual application configuration.*
+
+## Testing
+
+Run the automated test suite using:
+
+```bash
+pytest
+```
+
+The test suite can be used to verify application routes, core functionality, and database-related behavior.
+
+## Deployment
+
+The project includes deployment configuration and documentation intended for hosting the Flask application on Render.
+
+Typical deployment steps:
+
+1. Push the project to GitHub.
+2. Connect the repository to Render.
+3. Configure the required environment variables.
+4. Configure a supported production database.
+5. Deploy the application.
+6. Verify authentication, image upload, report generation, chatbot interactions, and analysis history.
+
+**Hosted application:** [ThoraxAI — Chest X-ray Analysis Chatbot](https://thoraxai-chest-xray.onrender.com)
+
+## Current Implementation
+
+ThoraxAI currently demonstrates image-based analysis through a custom rule-based inference engine. It evaluates computed image measurements and predefined conditions to produce structured educational reports. The application separates image processing, inference, report generation, and chatbot logic into modular components.
+
+## Project Contributors
+
+This project was developed collaboratively by:
+
+- **Manjula**
+- **Eshwari**
+
+## Project Repository
+
+[AI Chatbot for X-ray Analysis — GitHub](https://github.com/Manjula283/AI_CHATBOT_FOR_XRAY_ANALYSIS)
+
+## Acknowledgments
+
+We acknowledge the guidance and support provided during the development of this project.
+
+---
+
+*ThoraxAI — Combining image processing, quantitative analysis, and conversational interaction in one workspace.*
