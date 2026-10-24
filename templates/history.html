@@ -1,0 +1,112 @@
+{% extends "base.html" %}
+{% block title %}Study Library — ThoraxAI{% endblock %}
+
+{% block content %}
+{% set status_filter = request.args.get('status', 'completed') %}
+{% if status_filter == 'processing' %}
+  {% set visible_analyses = analyses_dicts | selectattr('status', 'equalto', 'processing') | list %}
+{% elif status_filter == 'completed' %}
+  {% set visible_analyses = analyses_dicts | selectattr('status', 'equalto', 'completed') | list %}
+{% else %}
+  {% set visible_analyses = analyses_dicts %}
+{% endif %}
+
+<div class="page hist-page">
+  <div class="study-header-card">
+    <div class="study-title-block">
+      <h1>
+        {% if status_filter == 'processing' %}
+          <span>Studies in Progress</span>
+        {% elif status_filter == 'completed' %}
+          <span>Completed Studies</span>
+        {% else %}
+          <span>All Studies</span>
+        {% endif %}
+        <span class="accession-badge">{{ visible_analyses | length }} Record{{ '' if (visible_analyses | length) == 1 else 's' }}</span>
+      </h1>
+    </div>
+  </div>
+
+  {% if visible_analyses %}
+    <div class="hist-grid">
+      {% for item in visible_analyses %}
+        {% set meta = item.metadata %}
+        <article class="hist-card">
+          <div class="hist-card-top">
+            <span class="accession-badge">{{ item.accession_number }}</span>
+            <span class="date">{{ item.created_at }}</span>
+          </div>
+
+          <div class="hist-card-body">
+            <a class="hist-thumb-link"
+               href="{{ url_for('view_analysis', analysis_id=item.analysis_id) }}"
+               aria-label="Open {{ item.case_label }}">
+              <img class="hist-thumb"
+                   src="{{ url_for('serve_analysis_image', analysis_id=item.analysis_id) }}"
+                   alt="Chest X-ray thumbnail for {{ item.case_label }}" />
+            </a>
+            <div class="hist-body-text">
+              <h2 class="hist-title">{{ item.case_label }}</h2>
+              <span class="status-pill status-pill-sm {{ meta.get('severity_level', 'completed') }}">
+                {{ meta.get('severity_badge', 'Completed') }}
+              </span>
+              <p class="hist-clamp">
+                {{ meta.get('plain_english', item.generated_report[:180]) }}
+              </p>
+            </div>
+          </div>
+
+          <div class="hist-card-footer">
+            <span class="meta">
+              {{ item.message_count }} saved chat message{{ '' if item.message_count == 1 else 's' }} · Status: {{ item.status | upper }}
+            </span>
+            <div class="hist-actions">
+              <a href="{{ url_for('view_analysis', analysis_id=item.analysis_id) }}"
+                 class="nav-btn nav-btn-primary"
+                 title="Reopen saved X-ray image and report without re-running inference">
+                Reopen Study &rarr;
+              </a>
+              <a href="{{ url_for('view_analysis', analysis_id=item.analysis_id) }}?chat=1"
+                 class="nav-btn"
+                 title="Open the saved chatbot conversation for this study">
+                Chat
+              </a>
+              <button type="button"
+                      class="nav-btn js-delete-analysis-btn"
+                      data-analysis-id="{{ item.analysis_id }}"
+                      data-case-label="{{ item.case_label }} ({{ item.accession_number }})">
+                Delete
+              </button>
+            </div>
+          </div>
+        </article>
+      {% endfor %}
+    </div>
+  {% else %}
+    <div class="hist-empty">
+      <div class="hist-empty-icon">
+        <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
+          {% if status_filter == 'processing' %}
+            <circle cx="12" cy="12" r="9"></circle><path d="M12 7v5l3 2"></path>
+          {% else %}
+            <rect x="3" y="3" width="18" height="18" rx="2"></rect><path d="M12 8v8M8 12h8"></path>
+          {% endif %}
+        </svg>
+      </div>
+      {% if status_filter == 'processing' %}
+        <h2>No studies in progress</h2>
+        <p>Uploads are processed in one request in this prototype. When a study is complete, it will appear under Completed / History.</p>
+        <a href="{{ url_for('dashboard', new=1) }}" class="nav-btn nav-btn-primary">Start a New Analysis &rarr;</a>
+      {% elif status_filter == 'completed' and analyses_dicts %}
+        <h2>No completed studies yet</h2>
+        <p>There are no completed records in this account yet.</p>
+        <a href="{{ url_for('history_page', status='all') }}" class="nav-btn">View All Studies</a>
+      {% else %}
+        <h2>No Previous Chest X-ray Analyses Found</h2>
+        <p>You do not have any saved analyses under this account yet. Upload a chest X-ray or select a built-in sample to create your first study.</p>
+        <a href="{{ url_for('dashboard', new=1) }}" class="nav-btn nav-btn-primary">Upload Your First Chest X-ray &rarr;</a>
+      {% endif %}
+    </div>
+  {% endif %}
+</div>
+{% endblock %}
